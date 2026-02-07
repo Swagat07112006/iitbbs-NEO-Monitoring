@@ -120,8 +120,8 @@ npm run dev:client   # Vite on port 5173
 
 All services use **multi-stage builds** to minimise image size:
 
-- **server** — `node:20-alpine` build → production stage with non-root user
-- **client** — `node:20-alpine` build → `nginx:alpine` serving static assets
+- **server** — `node:22-alpine` build → production stage with non-root user
+- **client** — `node:22-alpine` build → `nginx:alpine` serving static assets
 - **mongo** — Official `mongo:7` image with a persistent volume
 
 Nginx reverse-proxies `/api/*` and `/socket.io/*` requests to the backend.

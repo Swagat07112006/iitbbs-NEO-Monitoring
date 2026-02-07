@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Rocket, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StarBackground from '../components/landingPage/StarBackground';
@@ -26,11 +25,11 @@ const AuthPage = () => {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-4xl"
       >
-        <Card className="h-[600px] bg-black/40 backdrop-blur-xl border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row p-0 gap-0">
+        <Card className="h-150 bg-black/40 backdrop-blur-xl border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row p-0 gap-0">
         
           {/* Left Side: Visuals */}
-          <div className="hidden md:flex flex-col justify-between w-1/2 p-10 bg-gradient-to-br from-cyan-900/20 to-purple-900/20 relative">
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
+          <div className="hidden md:flex flex-col justify-between w-1/2 p-10 bg-linear-to-br from-cyan-900/20 to-purple-900/20 relative">
+             <div className="absolute inset-0 bg-[url('/earhImage.png')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
              <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent"></div>
              
              <div className="relative z-10">
