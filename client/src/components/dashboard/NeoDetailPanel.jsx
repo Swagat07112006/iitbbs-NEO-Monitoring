@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     X,
@@ -9,13 +10,41 @@ import {
     Zap,
     Target,
     Calendar,
-    Globe2
+    Globe2,
+    Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { fetchNeoLookup } from '@/services/api';
+import OrbitViewer3D from './OrbitViewer3D';
 
 const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
+    const [orbitalData, setOrbitalData] = useState(null);
+    const [orbitLoading, setOrbitLoading] = useState(false);
+
+    useEffect(() => {
+        if (!neo?.id) return;
+        let cancelled = false;
+        setOrbitLoading(true);
+        setOrbitalData(null);
+
+        fetchNeoLookup(neo.id)
+            .then((data) => {
+                if (!cancelled) {
+                    setOrbitalData(data?.raw?.orbital_data || null);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setOrbitalData(null);
+            })
+            .finally(() => {
+                if (!cancelled) setOrbitLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [neo?.id]);
+
     if (!neo) return null;
 
     const approach = neo.close_approach_data[0];
@@ -106,14 +135,23 @@ const NeoDetailPanel = ({ neo, onClose, onAddToWatchlist, onSetAlert }) => {
                         </Button>
                     </div>
 
-                    {/* Orbital Preview Placeholder */}
-                    <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-cyan-900/30 rounded-xl border border-white/10 mb-6 flex items-center justify-center">
-                        <div className="text-center">
-                            <Globe2 className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                            <p className="text-gray-500 text-sm">3D Orbit Visualization</p>
-                            <p className="text-gray-600 text-xs">Coming Soon</p>
+                    {/* 3D Orbit Visualization */}
+                    {orbitLoading ? (
+                        <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-cyan-900/30 rounded-xl border border-white/10 mb-6 flex items-center justify-center">
+                            <div className="text-center">
+                                <Loader2 className="w-8 h-8 text-purple-400 mx-auto mb-2 animate-spin" />
+                                <p className="text-gray-500 text-sm">Loading orbital data...</p>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="mb-6">
+                            <OrbitViewer3D
+                                orbitalData={orbitalData}
+                                isHazardous={isHazardous}
+                                name={neo.name}
+                            />
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-3 mb-6">
