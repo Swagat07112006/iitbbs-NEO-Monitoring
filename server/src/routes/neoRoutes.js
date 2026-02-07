@@ -1,5 +1,5 @@
-const express = require('express');
-const { getFeed, getLookup, getSummary } = require('../controllers/neoController');
+import express from 'express';
+import { getFeed, getLookup, getSummary } from '../controllers/neoController.js';
 
 const router = express.Router();
 
@@ -7,4 +7,4 @@ router.get('/feed', getFeed);
 router.get('/summary', getSummary);
 router.get('/lookup/:id', getLookup);
 
-module.exports = router;
+export default router;

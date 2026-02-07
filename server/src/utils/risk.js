@@ -54,7 +54,7 @@ const computeRiskScore = (neo) => {
   };
 };
 
-module.exports = {
+export {
   computeRiskScore,
   getMinMissDistanceKm,
   getDiameterMeters,
