@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
@@ -8,6 +8,8 @@ import {
     AlertTriangle,
     ChevronUp,
     ChevronDown,
+    ChevronLeft,
+    ChevronRight,
     ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,11 +17,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
+const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPageChange, loading }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterHazardous, setFilterHazardous] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'distance', direction: 'asc' });
-    const [displayCount, setDisplayCount] = useState(8);
 
     const neos = neoData?.neo_objects || [];
 
@@ -89,7 +90,16 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
     };
 
     return (
-        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full">
+        <Card className="bg-white/5 border-white/10 backdrop-blur-md overflow-hidden max-w-full relative">
+            {/* Page loading overlay */}
+            {loading && (
+                <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex items-center justify-center rounded-xl">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm text-gray-300">Loading page…</p>
+                    </div>
+                </div>
+            )}
             <CardHeader className="pb-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
@@ -184,7 +194,7 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                         </thead>
                         <tbody>
                             <AnimatePresence>
-                                {filteredAndSortedNeos.slice(0, displayCount).map((neo, index) => {
+                                {filteredAndSortedNeos.map((neo, index) => {
                                     const approach = neo.close_approach_data[0];
                                     const isHazardous = neo.is_potentially_hazardous;
 
@@ -283,25 +293,80 @@ const NeoFeedTable = ({ neoData, onSelectNeo, onAddToWatchlist }) => {
                     </table>
                 </div>
 
-                {/* Results count */}
-                <div className="mt-4 pt-4 border-t md:gap-0 gap-1 border-white/10 flex items-center justify-between">
+                {/* Pagination */}
+                <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-gray-500 text-sm">
-                        Showing {Math.min(displayCount, filteredAndSortedNeos.length)} of {filteredAndSortedNeos.length} asteroids
+                        Showing {filteredAndSortedNeos.length} of {neoData?.element_count || 0} asteroids
+                        {neoData?.total_pages > 1 && ` — Page ${page || 1} of ${neoData.total_pages}`}
                     </p>
-                    {filteredAndSortedNeos.length > displayCount && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDisplayCount(prev => prev + 8)}
-                            className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white cursor-pointer transition-all w-fit h-fit"
-                        >
-                            Load More <br />({filteredAndSortedNeos.length - displayCount} remaining)
-                        </Button>
+
+                    {neoData?.total_pages > 1 && (
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!neoData?.has_prev}
+                                onClick={() => onPageChange?.(page - 1)}
+                                className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="w-4 h-4 mr-1" />
+                                Prev
+                            </Button>
+
+                            {/* Page number buttons */}
+                            {Array.from({ length: neoData.total_pages }, (_, i) => i + 1)
+                                .filter((p) => {
+                                    // Show first, last, current, and neighbors
+                                    return p === 1 || p === neoData.total_pages || Math.abs(p - page) <= 1;
+                                })
+                                .reduce((acc, p, idx, arr) => {
+                                    // Insert ellipsis markers between non-consecutive pages
+                                    if (idx > 0 && p - arr[idx - 1] > 1) {
+                                        acc.push('...' + p);
+                                    }
+                                    acc.push(p);
+                                    return acc;
+                                }, [])
+                                .map((item) => {
+                                    if (typeof item === 'string') {
+                                        return (
+                                            <span key={item} className="text-gray-500 text-sm px-1">…</span>
+                                        );
+                                    }
+                                    return (
+                                        <Button
+                                            key={item}
+                                            size="sm"
+                                            variant={item === page ? 'default' : 'outline'}
+                                            onClick={() => onPageChange?.(item)}
+                                            className={
+                                                item === page
+                                                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                                                    : 'text-gray-400 border-white/10 hover:bg-white/5 hover:text-white'
+                                            }
+                                        >
+                                            {item}
+                                        </Button>
+                                    );
+                                })}
+
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!neoData?.has_next}
+                                onClick={() => onPageChange?.(page + 1)}
+                                className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                Next
+                                <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
+                        </div>
                     )}
                 </div>
             </CardContent>
         </Card>
     );
-};
+});
 
+NeoFeedTable.displayName = 'NeoFeedTable';
 export default NeoFeedTable;

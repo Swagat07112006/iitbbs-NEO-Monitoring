@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 
-const StarBackground = () => {
+const StarBackground = memo(() => {
   return (
     <div className="fixed inset-0 z-[-1] bg-black">
       <Canvas camera={{ position: [0, 0, 1] }}>
@@ -10,6 +10,8 @@ const StarBackground = () => {
       </Canvas>
     </div>
   );
-};
+});
+
+StarBackground.displayName = 'StarBackground';
 
 export default StarBackground;

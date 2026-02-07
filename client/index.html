@@ -5,9 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/rocket-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkyNetics</title>
+    <!-- DNS prefetch for external services -->
+    <link rel="dns-prefetch" href="https://api.nasa.gov" />
+    <link rel="preconnect" href="https://api.nasa.gov" crossorigin />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline critical loading state to avoid FOUC / blank screen -->
+      <style>
+        #root-loader{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#000}
+        #root-loader .spinner{width:2.5rem;height:2.5rem;border:3px solid #155e75;border-top-color:#22d3ee;border-radius:50%;animation:spin .6s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      </style>
+      <div id="root-loader"><div class="spinner"></div></div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

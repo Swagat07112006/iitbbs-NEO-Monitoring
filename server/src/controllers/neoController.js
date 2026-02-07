@@ -148,17 +148,57 @@ const getFeed = async (req, res, next) => {
       throw new ValidationError('Date range must be 7 days or less');
     }
 
+    // Pagination params (defaults: page 1, 20 items per page)
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
     const data = await fetchFeed({ start_date, end_date });
     const entries = data?.near_earth_objects || {};
     const rawItems = Object.values(entries).flat();
-    const items = rawItems.map(normalizeNeoForDashboard);
+    const allItems = rawItems.map(normalizeNeoForDashboard);
+
+    // Pre-compute aggregate stats from the full dataset
+    const totalCount = allItems.length;
+    const hazardousCount = allItems.filter((n) => n.is_potentially_hazardous).length;
+
+    let closestLunar = Infinity;
+    let closestNeoName = null;
+    let velocitySum = 0;
+
+    for (const neo of allItems) {
+      const lunar = neo.close_approach_data?.[0]?.miss_distance?.lunar ?? Infinity;
+      if (lunar < closestLunar) {
+        closestLunar = lunar;
+        closestNeoName = neo.name;
+      }
+      velocitySum += neo.close_approach_data?.[0]?.relative_velocity?.km_per_sec ?? 0;
+    }
+
+    const avgVelocity = totalCount > 0 ? +(velocitySum / totalCount).toFixed(2) : 0;
+
+    // Paginate
+    const totalPages = Math.ceil(totalCount / limit);
+    const startIdx = (page - 1) * limit;
+    const paginatedItems = allItems.slice(startIdx, startIdx + limit);
 
     res.json({
       fetched_at: new Date().toISOString(),
       start_date,
       end_date,
-      element_count: items.length,
-      neo_objects: items,
+      element_count: totalCount,
+      page,
+      limit,
+      total_pages: totalPages,
+      has_next: page < totalPages,
+      has_prev: page > 1,
+      neo_objects: paginatedItems,
+      stats: {
+        total: totalCount,
+        hazardous: hazardousCount,
+        closest_lunar: closestLunar === Infinity ? null : +closestLunar.toFixed(2),
+        closest_neo_name: closestNeoName,
+        avg_velocity_km_s: avgVelocity,
+      },
     });
   } catch (err) {
     next(err);

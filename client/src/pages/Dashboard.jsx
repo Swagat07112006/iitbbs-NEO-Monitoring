@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense, memo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -8,10 +8,19 @@ import RiskAnalysisPanel from '@/components/dashboard/RiskAnalysisPanel';
 import NeoDetailPanel from '@/components/dashboard/NeoDetailPanel';
 import Watchlist from '@/components/dashboard/Watchlist';
 import AlertsPanel from '@/components/dashboard/AlertsPanel';
-import OrbitViewer from '@/components/dashboard/OrbitViewer';
-import CommunityChat from '@/components/dashboard/CommunityChat';
 import { useAuth } from '@/context/AuthContext';
 import { fetchNeoFeed, fetchAlerts } from '@/services/api';
+
+// ─── Lazy-load heavy dashboard views ─────────────────────
+const OrbitViewer = lazy(() => import('@/components/dashboard/OrbitViewer'));
+const CommunityChat = lazy(() => import('@/components/dashboard/CommunityChat'));
+
+// ─── Inline loading fallback for lazy panels ─────────────
+const PanelLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="w-8 h-8 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const getDateRange = () => {
   const today = new Date();
@@ -29,7 +38,10 @@ const DashboardLayout = () => {
   const [selectedNeo, setSelectedNeo] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
 
   const { session } = useAuth();
 
@@ -45,14 +57,18 @@ const DashboardLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isPageChange = false) => {
     try {
-      setLoading(true);
+      if (isPageChange) {
+        setPageLoading(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const { start, end } = getDateRange();
 
       const [feedData, alertsData] = await Promise.all([
-        fetchNeoFeed(start, end),
+        fetchNeoFeed(start, end, { page, limit: pageSize }),
         fetchAlerts(start, end),
       ]);
 
@@ -63,33 +79,51 @@ const DashboardLayout = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
+  }, [page, pageSize]);
+
+  // Only run initial load once on mount
+  useEffect(() => {
+    loadData(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Track whether this is a page change vs initial load
+  const isFirstLoad = !neoData;
+
+  const handlePageChange = useCallback((newPage) => {
+    setPage(newPage);
+  }, []);
+
+  // When page changes (but not initial mount), trigger a page-change load
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!isFirstLoad) {
+      loadData(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-  const handleSelectNeo = (neo) => {
+  const handleSelectNeo = useCallback((neo) => {
     setSelectedNeo(neo);
-  };
+  }, []);
 
-  const handleCloseDetail = () => {
+  const handleCloseDetail = useCallback(() => {
     setSelectedNeo(null);
-  };
+  }, []);
 
-  const handleAddToWatchlist = (neo) => {
+  const handleAddToWatchlist = useCallback((neo) => {
     setWatchlist(prev => {
       if (prev.find(n => n.id === neo.id)) {
         return prev;
       }
       return [...prev, neo];
     });
-  };
+  }, []);
 
-  const handleRemoveFromWatchlist = (neoId) => {
+  const handleRemoveFromWatchlist = useCallback((neoId) => {
     setWatchlist(prev => prev.filter(n => n.id !== neoId));
-  };
+  }, []);
 
   const getViewTitle = () => {
     switch (activeView) {
@@ -149,6 +183,9 @@ const DashboardLayout = () => {
                   neoData={neoData}
                   onSelectNeo={handleSelectNeo}
                   onAddToWatchlist={handleAddToWatchlist}
+                  page={page}
+                  onPageChange={handlePageChange}
+                  loading={pageLoading}
                 />
               </div>
               <div>
@@ -164,6 +201,9 @@ const DashboardLayout = () => {
             neoData={neoData}
             onSelectNeo={handleSelectNeo}
             onAddToWatchlist={handleAddToWatchlist}
+            page={page}
+            onPageChange={handlePageChange}
+            loading={pageLoading}
           />
         );
 
@@ -183,15 +223,21 @@ const DashboardLayout = () => {
         return <AlertsPanel alerts={alerts} setAlerts={setAlerts} />;
 
       case '3d-viewer':
-        return <OrbitViewer />;
+        return (
+          <Suspense fallback={<PanelLoader />}>
+            <OrbitViewer />
+          </Suspense>
+        );
 
       case 'community':
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <CommunityChat />
+          <Suspense fallback={<PanelLoader />}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CommunityChat />
+              </div>
             </div>
-          </div>
+          </Suspense>
         );
 
       default:

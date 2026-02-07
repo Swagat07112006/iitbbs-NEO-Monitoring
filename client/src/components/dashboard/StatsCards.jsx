@@ -1,20 +1,19 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Radar, AlertTriangle, Target, Zap, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-const StatsCards = ({ neoData }) => {
-    const totalNeos = neoData?.neo_objects?.length || 0;
-    const hazardousCount = neoData?.neo_objects?.filter(n => n.is_potentially_hazardous)?.length || 0;
-
-    // Find closest approach
-    const closestNeo = neoData?.neo_objects?.[0];
-    const closestDistance = closestNeo?.close_approach_data?.[0]?.miss_distance?.lunar?.toFixed(2) || '—';
-
-    // Calculate average velocity
-    const avgVelocity = neoData?.neo_objects?.length > 0
-        ? (neoData.neo_objects.reduce((acc, neo) =>
-            acc + (neo.close_approach_data?.[0]?.relative_velocity?.km_per_sec || 0), 0
-        ) / neoData.neo_objects.length).toFixed(1)
+const StatsCards = memo(({ neoData }) => {
+    // Use pre-computed aggregate stats from the backend (covers all pages)
+    const aggregateStats = neoData?.stats;
+    const totalNeos = aggregateStats?.total ?? neoData?.element_count ?? 0;
+    const hazardousCount = aggregateStats?.hazardous ?? 0;
+    const closestDistance = aggregateStats?.closest_lunar != null
+        ? aggregateStats.closest_lunar.toFixed(2)
+        : '—';
+    const closestNeoName = aggregateStats?.closest_neo_name?.replace(/[()]/g, '') || '—';
+    const avgVelocity = aggregateStats?.avg_velocity_km_s != null
+        ? aggregateStats.avg_velocity_km_s.toFixed(1)
         : '—';
 
     const stats = [
@@ -51,7 +50,7 @@ const StatsCards = ({ neoData }) => {
             gradient: 'from-purple-500 via-pink-500 to-purple-500',
             iconColor: 'text-purple-400',
             bgHighlight: 'bg-purple-500/10',
-            description: closestNeo?.name?.replace(/[()]/g, '') || '—',
+            description: closestNeoName || '—',
             shineGradient: 'bg-gradient-to-r from-transparent via-purple-500 to-transparent',
             borderColor: 'group-hover:border-purple-500/50'
         },
@@ -88,7 +87,7 @@ const StatsCards = ({ neoData }) => {
             </div>
         </div>
     );
-};
+});
 
 const BorderBeamCard = ({ stat, index }) => {
     return (
@@ -148,4 +147,5 @@ const BorderBeamCard = ({ stat, index }) => {
     );
 };
 
+StatsCards.displayName = 'StatsCards';
 export default StatsCards;

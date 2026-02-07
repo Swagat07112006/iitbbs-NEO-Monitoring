@@ -1,25 +1,27 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Shield, Target } from 'lucide-react';
 
-const RiskAnalysisPanel = ({ neoData }) => {
+const RiskAnalysisPanel = memo(({ neoData }) => {
     const neos = neoData?.neo_objects || [];
+    const aggregateStats = neoData?.stats;
 
     const stats = useMemo(() => {
-        const hazardous = neos.filter(n => n.is_potentially_hazardous).length;
-        const safe = neos.length - hazardous;
+        // Use aggregate stats from backend when available (covers all pages)
+        const totalCount = aggregateStats?.total ?? neos.length;
+        const hazardous = aggregateStats?.hazardous ?? neos.filter(n => n.is_potentially_hazardous).length;
+        const safe = totalCount - hazardous;
 
-        // Calculate risk score based on hazardous ratio and proximity
-        const closestDistance = neos[0]?.close_approach_data?.[0]?.miss_distance?.lunar || 100;
-        const hazardousRatio = neos.length > 0 ? hazardous / neos.length : 0;
+        const closestDistance = aggregateStats?.closest_lunar ?? neos[0]?.close_approach_data?.[0]?.miss_distance?.lunar ?? 100;
+        const hazardousRatio = totalCount > 0 ? hazardous / totalCount : 0;
         const proximityScore = Math.max(0, 100 - closestDistance * 5);
         const riskScore = Math.min(100, Math.round(hazardousRatio * 50 + proximityScore * 0.5));
 
         return { hazardous, safe, riskScore };
-    }, [neos]);
+    }, [neos, aggregateStats]);
 
     const pieData = [
         { name: 'Hazardous', value: stats.hazardous, color: '#ef4444' },
@@ -218,6 +220,7 @@ const RiskAnalysisPanel = ({ neoData }) => {
             </CardContent>
         </Card>
     );
-};
+});
 
+RiskAnalysisPanel.displayName = 'RiskAnalysisPanel';
 export default RiskAnalysisPanel;

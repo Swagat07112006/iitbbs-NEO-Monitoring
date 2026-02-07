@@ -2,6 +2,11 @@ import supabase from '@/lib/supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// ─── In-flight request deduplication + short-lived cache ──
+const inflightRequests = new Map();
+const responseCache = new Map();
+const CACHE_TTL_MS = 60_000; // 1 minute
+
 /**
  * Helper — builds headers with optional Supabase auth token.
  */
@@ -20,35 +25,73 @@ const getHeaders = async () => {
 };
 
 /**
- * Generic fetch wrapper with error handling.
+ * Generic fetch wrapper with error handling, dedup, and cache.
  */
 const request = async (endpoint, options = {}) => {
-  const headers = await getHeaders();
-  const url = `${API_BASE}${endpoint}`;
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = `${method}:${endpoint}`;
 
-  const res = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...options.headers },
-  });
+  // Only cache GET requests
+  if (method === 'GET') {
+    // Return cached response if still fresh
+    const cached = responseCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return cached.data;
+    }
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    const message = data?.error || `Request failed with status ${res.status}`;
-    throw new Error(message);
+    // Deduplicate identical in-flight requests
+    if (inflightRequests.has(cacheKey)) {
+      return inflightRequests.get(cacheKey);
+    }
   }
 
-  return data;
+  const promise = (async () => {
+    const headers = await getHeaders();
+    const url = `${API_BASE}${endpoint}`;
+
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...options.headers },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const message = data?.error || `Request failed with status ${res.status}`;
+      throw new Error(message);
+    }
+
+    // Store in cache for GET requests
+    if (method === 'GET') {
+      responseCache.set(cacheKey, { data, ts: Date.now() });
+    }
+
+    return data;
+  })();
+
+  if (method === 'GET') {
+    inflightRequests.set(cacheKey, promise);
+    promise.finally(() => inflightRequests.delete(cacheKey));
+  }
+
+  return promise;
+};
+
+/** Manually invalidate cached entries matching a prefix. */
+export const invalidateCache = (prefix) => {
+  for (const key of responseCache.keys()) {
+    if (key.includes(prefix)) responseCache.delete(key);
+  }
 };
 
 // ─── NEO Endpoints ──────────────────────────────────────────
 
 /**
- * Fetch NEO feed for a date range (max 7 days).
- * Returns { fetched_at, start_date, end_date, element_count, neo_objects }
+ * Fetch NEO feed for a date range (max 7 days) with pagination.
+ * Returns { fetched_at, start_date, end_date, element_count, page, limit, total_pages, has_next, has_prev, neo_objects, stats }
  */
-export const fetchNeoFeed = (startDate, endDate) => {
-  return request(`/neos/feed?start_date=${startDate}&end_date=${endDate}`);
+export const fetchNeoFeed = (startDate, endDate, { page = 1, limit = 20 } = {}) => {
+  return request(`/neos/feed?start_date=${startDate}&end_date=${endDate}&page=${page}&limit=${limit}`);
 };
 
 /**
