@@ -1,6 +1,6 @@
-const { fetchFeed, fetchLookup } = require('../services/nasa');
-const { ValidationError, NotFoundError } = require('../errors/appError');
-const { computeRiskScore, getMinMissDistanceKm, getDiameterMeters } = require('../utils/risk');
+import { fetchFeed, fetchLookup } from '../services/nasa.js';
+import { ValidationError, NotFoundError } from '../errors/appError.js';
+import { computeRiskScore, getMinMissDistanceKm, getDiameterMeters } from '../utils/risk.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -130,7 +130,7 @@ const getSummary = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export {
   getFeed,
   getLookup,
   getSummary,

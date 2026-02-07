@@ -1,5 +1,5 @@
-const axios = require('axios');
-const { ValidationError } = require('../errors/appError');
+import axios from 'axios';
+import { ValidationError } from '../errors/appError.js';
 
 const NASA_BASE_URL = 'https://api.nasa.gov/neo/rest/v1';
 
@@ -33,7 +33,7 @@ const fetchLookup = async (id) => {
   return data;
 };
 
-module.exports = {
+export {
   fetchFeed,
   fetchLookup,
 };
