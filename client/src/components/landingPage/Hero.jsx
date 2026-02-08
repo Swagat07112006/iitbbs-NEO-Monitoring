@@ -72,9 +72,9 @@ const Hero = () => {
 
           <Separator className="mt-16 bg-white/10" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center pt-8 w-full">
-            <StatItem number="25,000+" label="NEOs Tracked" />
-            <StatItem number="1.2M" label="Data Points/Day" />
-            <StatItem number="0.05s" label="Latency" />
+            <StatItem number="500+" label="NEOs Tracked" />
+            <StatItem number="1.2k" label="Data Points/Day" />
+            <StatItem number="0.1s" label="Latency" />
             <StatItem number="24/7" label="Monitoring" />
           </div>
         </motion.div>
