@@ -1,15 +1,28 @@
 import React from 'react';
 import { Rocket, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useAuth } from '@/context/AuthContext';
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+
+  const handleCommunityClick = (e) => {
+    e.preventDefault();
+    if (session) {
+      navigate('/home', { state: { view: 'community' } });
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <nav className="fixed w-full z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -76,7 +89,7 @@ const Navbar = () => {
     after:shadow-[0_0_10px_rgba(0,240,255,0.8)]
     after:transition-all after:duration-300
     hover:after:w-full">
-                <a href="#community">Community</a>
+                <a href="#" onClick={handleCommunityClick}>Community</a>
               </Button>
               <Button asChild className="bg-cyan-600/90 hover:bg-cyan-500 text-white px-5 py-2 rounded-full font-medium shadow-lg shadow-cyan-500/20 border border-cyan-400/20 transform hover:scale-105 transition-all h-auto cursor-pointer">
                 <Link to="/auth">Login / Register</Link>
@@ -102,7 +115,7 @@ const Navbar = () => {
                     <a href="#features">Features</a>
                   </Button>
                   <Button variant="ghost" asChild className="justify-start text-gray-300 hover:text-cyan-400 hover:bg-transparent text-base font-medium">
-                    <a href="#community">Community</a>
+                    <a href="#" onClick={handleCommunityClick}>Community</a>
                   </Button>
                   <Button asChild className="mt-2 bg-cyan-600/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-600/30 text-base font-medium justify-start h-auto py-2 cursor-pointer">
                     <Link to="/auth">Login</Link>

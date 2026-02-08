@@ -1,11 +1,23 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthContext';
 
 const Hero = () => {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+
+  const handleInteractiveMap = () => {
+    if (session) {
+      navigate('/home', { state: { view: '3d-viewer' } });
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <div className="relative z-10 w-full min-h-screen flex items-center justify-center text-white px-4 pt-16">
       {/* Decorative gradient glowing orb */}
@@ -52,8 +64,7 @@ const Hero = () => {
                 <RocketIcon className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
               </Link>
             </Button>
-            <Button variant="outline" className="bg-white/5 border-white/10 hover:shadow-[8px_0_30px_rgba(0,80,175,0.9)]
- hover:bg-black text-white px-8 py-4 rounded-xl font-bold text-lg h-auto backdrop-blur-md hover:text-blue-300 transition-all duration-300 ease-in-out">
+            <Button onClick={handleInteractiveMap} variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 text-white px-8 py-4 rounded-xl font-bold text-lg h-auto backdrop-blur-md hover:text-cyan-300 hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 ease-in-out cursor-pointer">
               <Globe className="w-5 h-5" />
               Interactive Map
             </Button>
