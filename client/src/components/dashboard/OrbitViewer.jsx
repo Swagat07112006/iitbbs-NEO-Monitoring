@@ -286,7 +286,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
         setTotalToLoad(idsToFetch.length);
 
         const fetchAll = async () => {
-            const batchSize = 5;
+            const batchSize = 2;
             const newCache = {};
 
             for (let i = 0; i < idsToFetch.length; i += batchSize) {

@@ -12,6 +12,9 @@ services:
       - .env
     environment:
       - PORT=5000
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     networks:
       - neo-network
 
