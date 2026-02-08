@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # ---------- Express Backend ----------
   server:
@@ -10,11 +8,13 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     environment:
       - PORT=5000
-      - DATABASE_URL=${DATABASE_URL}
-      - NASA_API_KEY=${NASA_API_KEY:-DEMO_KEY}
-      - JWT_SECRET=${JWT_SECRET:-cosmic-watch-secret-key-change-in-production}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     networks:
       - neo-network
 
@@ -23,6 +23,10 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: ${VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}
+        VITE_API_URL: ${VITE_API_URL:-}
     container_name: neo-client
     restart: unless-stopped
     ports:

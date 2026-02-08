@@ -1,0 +1,820 @@
+{
+  "info": {
+    "name": "SkyNetics API",
+    "description": "Complete API collection for the Cosmic Watch NEO Monitoring Platform.\n\nBase URL: `{{base_url}}`\n\nAuthentication: Supabase Bearer token via `{{auth_token}}`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "start_date",
+      "value": "2026-02-08",
+      "type": "string"
+    },
+    {
+      "key": "end_date",
+      "value": "2026-02-15",
+      "type": "string"
+    },
+    {
+      "key": "neo_id",
+      "value": "3449121",
+      "type": "string"
+    },
+    {
+      "key": "alert_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Server health check endpoints.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns server status, service name, timestamp, and uptime. No auth required."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is ok', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.service).to.eql('neo-monitoring-api');",
+                  "  pm.expect(body).to.have.property('timestamp');",
+                  "  pm.expect(body).to.have.property('uptime');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication-related endpoints. Requires a valid Supabase access token.",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Returns the authenticated user's Supabase profile. Requires Bearer token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns user object', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('user');",
+                  "  pm.expect(body.user).to.have.property('id');",
+                  "  pm.expect(body.user).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NEO Data",
+      "description": "Near-Earth Object data endpoints powered by NASA's NeoWs API. Responses are cached in Redis for 1 hour.",
+      "item": [
+        {
+          "name": "Get NEO Feed",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/feed?start_date={{start_date}}&end_date={{end_date}}&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "feed"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}",
+                  "description": "End date (YYYY-MM-DD, max 7 days from start)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (1-100, default: 20)"
+                }
+              ]
+            },
+            "description": "Fetches the NEO feed for a date range. Returns paginated asteroid data with risk scores and aggregate stats. Max 7-day range."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has expected structure', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('element_count');",
+                  "  pm.expect(body).to.have.property('neo_objects');",
+                  "  pm.expect(body).to.have.property('stats');",
+                  "  pm.expect(body).to.have.property('page');",
+                  "  pm.expect(body).to.have.property('total_pages');",
+                  "  pm.expect(body.neo_objects).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('NEO objects have risk scores', () => {",
+                  "  const body = pm.response.json();",
+                  "  if (body.neo_objects.length > 0) {",
+                  "    const neo = body.neo_objects[0];",
+                  "    pm.expect(neo).to.have.property('risk');",
+                  "    pm.expect(neo.risk).to.have.property('score');",
+                  "    pm.expect(neo.risk).to.have.property('label');",
+                  "  }",
+                  "});",
+                  "",
+                  "// Save a NEO ID for lookup tests",
+                  "const body = pm.response.json();",
+                  "if (body.neo_objects && body.neo_objects.length > 0) {",
+                  "  pm.collectionVariables.set('neo_id', body.neo_objects[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get NEO Summary",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/summary?start_date={{start_date}}&end_date={{end_date}}",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "summary"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}",
+                  "description": "End date (YYYY-MM-DD, max 7 days from start)"
+                }
+              ]
+            },
+            "description": "Returns aggregate stats for a date range: total count, hazardous count, and risk breakdown (high/medium/low). Lighter than /feed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has summary fields', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('total');",
+                  "  pm.expect(body).to.have.property('hazardous');",
+                  "  pm.expect(body).to.have.property('risk_breakdown');",
+                  "  pm.expect(body.risk_breakdown).to.have.property('high');",
+                  "  pm.expect(body.risk_breakdown).to.have.property('medium');",
+                  "  pm.expect(body.risk_breakdown).to.have.property('low');",
+                  "});",
+                  "",
+                  "pm.test('Counts add up', () => {",
+                  "  const body = pm.response.json();",
+                  "  const sum = body.risk_breakdown.high + body.risk_breakdown.medium + body.risk_breakdown.low;",
+                  "  pm.expect(sum).to.eql(body.total);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lookup NEO by ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/lookup/{{neo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "lookup", "{{neo_id}}"]
+            },
+            "description": "Fetches full details for a single asteroid by NASA SPK-ID. Returns a normalized summary and the raw NASA response (includes orbital data for 3D visualization)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has neo and raw fields', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('neo');",
+                  "  pm.expect(body).to.have.property('raw');",
+                  "});",
+                  "",
+                  "pm.test('Normalized NEO has expected fields', () => {",
+                  "  const neo = pm.response.json().neo;",
+                  "  pm.expect(neo).to.have.property('id');",
+                  "  pm.expect(neo).to.have.property('name');",
+                  "  pm.expect(neo).to.have.property('is_potentially_hazardous');",
+                  "  pm.expect(neo).to.have.property('diameter_m');",
+                  "  pm.expect(neo).to.have.property('miss_distance_km');",
+                  "  pm.expect(neo).to.have.property('risk');",
+                  "});",
+                  "",
+                  "pm.test('Raw response has orbital data', () => {",
+                  "  const raw = pm.response.json().raw;",
+                  "  pm.expect(raw).to.have.property('orbital_data');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "description": "Alert endpoints. Alerts are generated on-the-fly from NASA data based on close approaches (< 5 LD) and hazardous status. Per-user read/deleted state is persisted in Supabase.",
+      "item": [
+        {
+          "name": "Get Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/alerts?start_date={{start_date}}&end_date={{end_date}}",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "alerts"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "{{start_date}}",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "{{end_date}}",
+                  "description": "End date (YYYY-MM-DD, max 7 days from start)"
+                }
+              ]
+            },
+            "description": "Gets alerts for a date range. Auth is optional — if a token is provided, per-user read/deleted states are applied. Alerts are sorted by priority (high first)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has alerts array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('total');",
+                  "  pm.expect(body).to.have.property('alerts');",
+                  "  pm.expect(body.alerts).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Alerts have required fields', () => {",
+                  "  const alerts = pm.response.json().alerts;",
+                  "  if (alerts.length > 0) {",
+                  "    const a = alerts[0];",
+                  "    pm.expect(a).to.have.property('id');",
+                  "    pm.expect(a).to.have.property('type');",
+                  "    pm.expect(a).to.have.property('title');",
+                  "    pm.expect(a).to.have.property('message');",
+                  "    pm.expect(a).to.have.property('priority');",
+                  "    pm.expect(a).to.have.property('neo_id');",
+                  "    pm.expect(a).to.have.property('read');",
+                  "  }",
+                  "});",
+                  "",
+                  "// Save first alert ID for mark-read/delete tests",
+                  "const alerts = pm.response.json().alerts;",
+                  "if (alerts && alerts.length > 0) {",
+                  "  pm.collectionVariables.set('alert_id', alerts[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark Alert as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/alerts/{{alert_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "alerts", "{{alert_id}}", "read"]
+            },
+            "description": "Marks a single alert as read for the authenticated user. The alert_id is the deterministic SHA-1 hash returned by the Get Alerts endpoint."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Alert marked as read', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body.read).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark All Alerts as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alert_ids\": [\"{{alert_id}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/neos/alerts/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "alerts", "read-all"]
+            },
+            "description": "Marks multiple alerts as read in a single request. Send an array of alert IDs in the request body."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns updated count', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('updated');",
+                  "  pm.expect(body.updated).to.be.a('number');",
+                  "  pm.expect(body.read).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Alert",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/alerts/{{alert_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "alerts", "{{alert_id}}"]
+            },
+            "description": "Soft-deletes an alert for the authenticated user. The alert will no longer appear in future responses for this user. Other users are unaffected."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Alert deleted', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body.deleted).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Watchlist",
+      "description": "User watchlist endpoints. All routes require authentication. Allows users to save asteroids and toggle per-NEO alert notifications.",
+      "item": [
+        {
+          "name": "Get Watchlist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/watchlist",
+              "host": ["{{base_url}}"],
+              "path": ["watchlist"]
+            },
+            "description": "Returns all asteroids the authenticated user is watching, ordered by most recently added."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has items array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('total');",
+                  "  pm.expect(body).to.have.property('items');",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Items have expected fields', () => {",
+                  "  const items = pm.response.json().items;",
+                  "  if (items.length > 0) {",
+                  "    const item = items[0];",
+                  "    pm.expect(item).to.have.property('id');",
+                  "    pm.expect(item).to.have.property('neo_id');",
+                  "    pm.expect(item).to.have.property('neo_name');",
+                  "    pm.expect(item).to.have.property('added_at');",
+                  "    pm.expect(item).to.have.property('alert_enabled');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add to Watchlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"neo_id\": \"{{neo_id}}\",\n  \"neo_name\": \"(2009 BE)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist",
+              "host": ["{{base_url}}"],
+              "path": ["watchlist"]
+            },
+            "description": "Adds an asteroid to the user's watchlist. If the asteroid already exists, the entry is upserted. Both neo_id and neo_name are required."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns created item', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body).to.have.property('item');",
+                  "  pm.expect(body.item).to.have.property('neo_id');",
+                  "  pm.expect(body.item).to.have.property('neo_name');",
+                  "  pm.expect(body.item).to.have.property('added_at');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Alert for Watchlist Item",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/watchlist/{{neo_id}}/alert",
+              "host": ["{{base_url}}"],
+              "path": ["watchlist", "{{neo_id}}", "alert"]
+            },
+            "description": "Toggles the alert_enabled flag for an asteroid in the user's watchlist. If currently true, sets to false, and vice versa. The NEO must already be in the watchlist."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns toggled state', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body).to.have.property('neo_id');",
+                  "  pm.expect(body).to.have.property('alert_enabled');",
+                  "  pm.expect(body.alert_enabled).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove from Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/watchlist/{{neo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["watchlist", "{{neo_id}}"]
+            },
+            "description": "Removes an asteroid from the user's watchlist by NASA SPK-ID."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns removal confirmation', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.removed).to.be.true;",
+                  "  pm.expect(body).to.have.property('neo_id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "description": "Requests designed to trigger error responses for validation testing.",
+      "item": [
+        {
+          "name": "Feed — Missing dates",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/feed",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "feed"]
+            },
+            "description": "Should return 400 VALIDATION_ERROR because start_date and end_date are missing."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns validation error', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feed — Range too large",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/neos/feed?start_date=2026-01-01&end_date=2026-02-01",
+              "host": ["{{base_url}}"],
+              "path": ["neos", "feed"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-02-01"
+                }
+              ]
+            },
+            "description": "Should return 400 because the date range exceeds 7 days."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns validation error about range', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(body.error).to.include('7 days');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected route — No token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Should return 401 INVALID_TOKEN because no auth header is provided."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Returns auth error', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('INVALID_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Watchlist — Missing neo_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"neo_name\": \"Test Asteroid\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/watchlist",
+              "host": ["{{base_url}}"],
+              "path": ["watchlist"]
+            },
+            "description": "Should return 400 VALIDATION_ERROR because neo_id is missing from the body."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns validation error', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('VALIDATION_ERROR');",
+                  "  pm.expect(body.error).to.include('neo_id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 — Unknown route",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/nonexistent",
+              "host": ["{{base_url}}"],
+              "path": ["nonexistent"]
+            },
+            "description": "Should return 404 NOT_FOUND for an unmatched route."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Returns not found error', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
