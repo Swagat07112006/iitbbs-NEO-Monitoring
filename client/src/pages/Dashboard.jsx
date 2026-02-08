@@ -228,7 +228,7 @@ const DashboardLayout = () => {
       case '3d-viewer':
         return (
           <Suspense fallback={<PanelLoader />}>
-            <OrbitViewer />
+            <OrbitViewer neoData={neoData} onSelectNeo={handleSelectNeo} />
           </Suspense>
         );
 
