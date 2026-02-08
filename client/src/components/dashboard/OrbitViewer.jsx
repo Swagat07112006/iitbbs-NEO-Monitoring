@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Globe2, Eye, EyeOff, Loader2, AlertTriangle } from 'lucide-react';
-import { fetchNeoLookup } from '@/services/api';
+import { fetchNeoLookup, fetchNeoFeed } from '@/services/api';
 
 // ─── Orbital math ───────────────────────────────────────────
 
@@ -91,11 +91,16 @@ const Sun = () => (
 const EarthMarker = () => (
     <group position={[AU_SCALE, 0, 0]}>
         <mesh>
-            <sphereGeometry args={[0.25, 32, 32]} />
-            <meshStandardMaterial color="#4da6ff" emissive="#1e60a0" emissiveIntensity={0.4} />
+            <sphereGeometry args={[0.3, 32, 32]} />
+            <meshStandardMaterial color="#00e5ff" emissive="#00acc1" emissiveIntensity={0.6} />
+        </mesh>
+        {/* Glow ring around Earth */}
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.35, 0.45, 32]} />
+            <meshBasicMaterial color="#00e5ff" opacity={0.2} transparent side={THREE.DoubleSide} />
         </mesh>
         <Html center style={{ pointerEvents: 'none' }}>
-            <span className="text-[10px] text-blue-400 font-medium -translate-y-4 block">Earth</span>
+            <span className="text-[10px] text-cyan-300 font-semibold -translate-y-5 block drop-shadow-[0_0_6px_rgba(0,229,255,0.6)]">Earth</span>
         </Html>
     </group>
 );
@@ -104,7 +109,7 @@ const EarthOrbit = memo(() => {
     const geom = useMemo(() => new THREE.BufferGeometry().setFromPoints(earthOrbitPts), []);
     return (
         <line geometry={geom}>
-            <lineBasicMaterial color="#3b82f6" opacity={0.25} transparent />
+            <lineBasicMaterial color="#00e5ff" opacity={0.35} transparent />
         </line>
     );
 });
@@ -112,7 +117,7 @@ EarthOrbit.displayName = 'EarthOrbit';
 
 // ─── Single asteroid (orbit trail + marker) ─────────────────
 
-const ORBIT_COLORS = ['#a855f7', '#ec4899', '#06b6d4', '#10b981', '#f97316', '#8b5cf6', '#14b8a6', '#f43f5e'];
+const ORBIT_COLORS = ['#f59e0b', '#fb923c', '#facc15', '#d97706', '#fbbf24', '#f97316', '#eab308', '#fcd34d'];
 
 const AsteroidOrbit = memo(({ orbitalData, color, opacity }) => {
     const geom = useMemo(() => {
@@ -147,8 +152,8 @@ const AsteroidDot = ({ position, isHazardous, name, onClick, hovered, onHover })
             >
                 <octahedronGeometry args={[size, 0]} />
                 <meshStandardMaterial
-                    color={isHazardous ? '#ef4444' : '#a855f7'}
-                    emissive={isHazardous ? '#ef4444' : '#a855f7'}
+                    color={isHazardous ? '#ef4444' : '#f59e0b'}
+                    emissive={isHazardous ? '#ef4444' : '#f59e0b'}
                     emissiveIntensity={hovered ? 1 : 0.4}
                     wireframe
                 />
@@ -202,7 +207,7 @@ const AllAsteroidsScene = ({ asteroids, onSelectNeo, showOrbits, showLabels }) =
                         />
                         {showLabels && (
                             <Html position={ast.position} center style={{ pointerEvents: 'none', transform: 'translateY(-20px)' }}>
-                                <span className={`text-[8px] font-medium whitespace-nowrap ${ast.isHazardous ? 'text-red-400' : 'text-purple-300'}`}>
+                                <span className={`text-[8px] font-medium whitespace-nowrap ${ast.isHazardous ? 'text-red-400' : 'text-amber-300'}`}>
                                     {ast.name}
                                 </span>
                             </Html>
@@ -227,24 +232,58 @@ const AllAsteroidsScene = ({ asteroids, onSelectNeo, showOrbits, showLabels }) =
 
 // ─── Main component ─────────────────────────────────────────
 
+const getDateRange = () => {
+    const today = new Date();
+    const start = today.toISOString().split('T')[0];
+    const end = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    return { start, end };
+};
+
 const OrbitViewer = ({ neoData, onSelectNeo }) => {
-    const neos = neoData?.neo_objects || [];
+    const [allNeos, setAllNeos] = useState([]);
     const [orbitalCache, setOrbitalCache] = useState({});
     const [loading, setLoading] = useState(false);
     const [loadedCount, setLoadedCount] = useState(0);
+    const [totalToLoad, setTotalToLoad] = useState(0);
     const [showOrbits, setShowOrbits] = useState(true);
-    const [showLabels, setShowLabels] = useState(false);
+    const [showLabels, setShowLabels] = useState(true);
 
-    // Fetch orbital data for all NEOs in parallel batches
+    // Step 1: Fetch ALL NEOs (limit=100) instead of using paginated prop
     useEffect(() => {
-        if (neos.length === 0) return;
+        let cancelled = false;
+
+        const fetchAllNeos = async () => {
+            try {
+                const { start, end } = getDateRange();
+                const data = await fetchNeoFeed(start, end, { page: 1, limit: 100 });
+                if (!cancelled) {
+                    setAllNeos(data?.neo_objects || []);
+                }
+            } catch (err) {
+                console.error('OrbitViewer: failed to fetch full NEO list', err);
+                // Fallback to paginated data from prop
+                if (!cancelled) {
+                    setAllNeos(neoData?.neo_objects || []);
+                }
+            }
+        };
+
+        fetchAllNeos();
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Step 2: Fetch orbital data for every NEO in batches
+    useEffect(() => {
+        if (allNeos.length === 0) return;
 
         let cancelled = false;
-        const idsToFetch = neos.map(n => n.id).filter(id => !orbitalCache[id]);
+        const idsToFetch = allNeos.map(n => n.id).filter(id => !orbitalCache[id]);
         if (idsToFetch.length === 0) return;
 
         setLoading(true);
         setLoadedCount(0);
+        setTotalToLoad(idsToFetch.length);
 
         const fetchAll = async () => {
             const batchSize = 5;
@@ -277,11 +316,11 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
         fetchAll();
         return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [neos.map(n => n.id).join(',')]);
+    }, [allNeos.map(n => n.id).join(',')]);
 
     // Build scene-ready asteroid list
     const asteroids = useMemo(() => {
-        return neos
+        return allNeos
             .filter(neo => orbitalCache[neo.id])
             .map(neo => {
                 const od = orbitalCache[neo.id];
@@ -294,7 +333,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                     raw: neo,
                 };
             });
-    }, [neos, orbitalCache]);
+    }, [allNeos, orbitalCache]);
 
     const hazardousCount = asteroids.filter(a => a.isHazardous).length;
     const totalReady = asteroids.length;
@@ -329,7 +368,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                             <div className="text-center">
                                 <Loader2 className="w-8 h-8 text-purple-400 mx-auto mb-2 animate-spin" />
                                 <p className="text-gray-400 text-sm">
-                                    Loading orbital data... {loadedCount}/{neos.length}
+                                    Loading orbital data... {loadedCount}/{totalToLoad}
                                 </p>
                             </div>
                         </div>
@@ -356,10 +395,10 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                     {/* Legend */}
                     <div className="absolute bottom-2 left-2 flex gap-3 text-[10px] text-gray-500 pointer-events-none">
                         <span className="flex items-center gap-1">
-                            <span className="w-2 h-0.5 bg-blue-500 inline-block rounded" /> Earth
+                            <span className="w-2 h-0.5 bg-cyan-400 inline-block rounded" /> Earth
                         </span>
                         <span className="flex items-center gap-1">
-                            <span className="w-2 h-0.5 bg-purple-500 inline-block rounded" /> Safe
+                            <span className="w-2 h-0.5 bg-amber-400 inline-block rounded" /> Safe
                         </span>
                         <span className="flex items-center gap-1">
                             <span className="w-2 h-0.5 bg-red-500 inline-block rounded" /> Hazardous
@@ -382,7 +421,7 @@ const OrbitViewer = ({ neoData, onSelectNeo }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => setShowLabels(v => !v)}
-                        className={`border-white/10 text-xs ${showLabels ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
+                        className={`border-white/10 text-xs ${showLabels ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400'} hover:text-white hover:bg-white/10`}
                     >
                         {showLabels ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                         Labels
