@@ -126,7 +126,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'all' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('all')}
-                                className={filterHazardous === 'all' ? 'bg-white/10 text-white' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 All
                             </Button>
@@ -134,7 +134,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'hazardous' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('hazardous')}
-                                className={filterHazardous === 'hazardous' ? 'bg-red-500/20 text-red-400' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'hazardous' ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:text-red-400'}`}
                             >
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 Hazardous
@@ -143,7 +143,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                 size="sm"
                                 variant={filterHazardous === 'safe' ? 'default' : 'ghost'}
                                 onClick={() => setFilterHazardous('safe')}
-                                className={filterHazardous === 'safe' ? 'bg-green-500/20 text-green-400' : 'text-gray-400'}
+                                className={`cursor-pointer transition-all duration-200 ${filterHazardous === 'safe' ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-green-400'}`}
                             >
                                 Safe
                             </Button>
@@ -268,7 +268,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => onSelectNeo?.(neo)}
-                                                    className="text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10"
+                                                    className="text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 cursor-pointer transition-all duration-200 hover:scale-110"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </Button>
@@ -276,10 +276,10 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => onAddToWatchlist?.(neo)}
-                                                    className={isInWatchlist(neo.id)
+                                                    className={`cursor-pointer transition-all duration-200 hover:scale-110 ${isInWatchlist(neo.id)
                                                         ? 'text-yellow-400 bg-yellow-500/10 hover:text-yellow-300 hover:bg-yellow-500/20'
                                                         : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10'
-                                                    }
+                                                    }`}
                                                 >
                                                     <Star className={`w-4 h-4 ${isInWatchlist(neo.id) ? 'fill-yellow-400' : ''}`} />
                                                 </Button>
@@ -287,7 +287,7 @@ const NeoFeedTable = memo(({ neoData, onSelectNeo, onAddToWatchlist, page, onPag
                                                     size="sm"
                                                     variant="ghost"
                                                     asChild
-                                                    className="text-gray-400 hover:text-white hover:bg-white/10"
+                                                    className="text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer transition-all duration-200 hover:scale-110"
                                                 >
                                                     <a href={neo.nasa_jpl_url} target="_blank" rel="noopener noreferrer">
                                                         <ExternalLink className="w-4 h-4" />

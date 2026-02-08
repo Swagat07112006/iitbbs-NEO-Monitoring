@@ -335,9 +335,9 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9, x: -100 }}
                                         transition={{ delay: index * 0.03 }}
-                                        className={`p-4 rounded-xl transition-all duration-200 ${isHazardous
-                                            ? 'bg-red-500/10 border border-red-500/20'
-                                            : 'bg-white/5 border border-white/10'
+                                        className={`p-4 rounded-xl transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-white/5 hover:-translate-y-0.5 ${isHazardous
+                                            ? 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/40 hover:shadow-red-500/10'
+                                            : 'bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20'
                                             } ${isSelected ? 'ring-2 ring-cyan-400/50 bg-cyan-500/5' : ''}`}
                                     >
                                         {/* Header */}
@@ -397,7 +397,7 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => toggleCompare(neo.id)}
-                                                    className={`h-7 px-2 ${isSelected
+                                                    className={`h-7 px-2 cursor-pointer transition-all duration-200 hover:scale-110 ${isSelected
                                                         ? 'text-cyan-400 bg-cyan-500/20 hover:bg-cyan-500/30'
                                                         : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
                                                         }`}
@@ -412,7 +412,7 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => onView?.(neo)}
-                                                    className="h-7 px-2 text-gray-400 hover:text-white hover:bg-white/10"
+                                                    className="h-7 px-2 text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer transition-all duration-200 hover:scale-110"
                                                     title="View details"
                                                 >
                                                     <Eye className="w-3 h-3" />
@@ -424,7 +424,7 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => toggleAlert(neo).catch(() => { })}
-                                                    className={`h-7 px-2 ${hasAlert(neo.id)
+                                                    className={`h-7 px-2 cursor-pointer transition-all duration-200 hover:scale-110 ${hasAlert(neo.id)
                                                         ? 'text-purple-400 bg-purple-500/20 hover:bg-purple-500/30'
                                                         : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
                                                         }`}
@@ -438,7 +438,7 @@ const Watchlist = ({ onView, onViewAll3D, neoData }) => {
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => removeFromWatchlist(neo.id).catch(() => { })}
-                                                className="h-7 px-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 ml-auto"
+                                                className="h-7 px-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 ml-auto cursor-pointer transition-all duration-200 hover:scale-110"
                                                 title="Remove from watchlist"
                                             >
                                                 <Trash2 className="w-3 h-3" />

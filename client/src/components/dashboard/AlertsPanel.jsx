@@ -159,7 +159,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                             size="sm"
                             variant={filter === 'all' ? 'default' : 'ghost'}
                             onClick={() => setFilter('all')}
-                            className={`h-7 px-3 ${filter === 'all' ? 'bg-white/10' : 'text-gray-400'
+                            className={`h-7 px-3 cursor-pointer transition-all duration-200 ${filter === 'all' ? 'bg-white/10' : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             All
@@ -169,7 +169,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                             size="sm"
                             variant={filter === 'unread' ? 'default' : 'ghost'}
                             onClick={() => setFilter('unread')}
-                            className={`h-7 px-3 ${filter === 'unread' ? 'bg-white/10' : 'text-gray-400'
+                            className={`h-7 px-3 cursor-pointer transition-all duration-200 ${filter === 'unread' ? 'bg-white/10' : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Unread
@@ -196,13 +196,13 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, x: -100 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className={`p-4 rounded-xl border transition-all ${alert.read
-                                        ? 'bg-white/5 border-white/5'
-                                        : 'bg-white/10 border-cyan-500/30'
+                                    className={`p-4 rounded-xl border transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-white/5 hover:-translate-y-0.5 ${alert.read
+                                        ? 'bg-white/5 border-white/5 hover:bg-white/8 hover:border-white/15'
+                                        : 'bg-white/10 border-cyan-500/30 hover:bg-white/15 hover:border-cyan-500/50 hover:shadow-cyan-500/10'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className={`p-2 rounded-lg ${getPriorityColor(alert.priority)}`}>
+                                        <div className={`p-2 rounded-lg ${getPriorityColor(alert.priority)} transition-transform duration-300 group-hover:scale-110`}>
                                             {getAlertIcon(alert.type)}
                                         </div>
 
@@ -229,7 +229,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => markAsRead(alert.id)}
-                                                    className="text-gray-400 hover:text-green-400 h-8 px-2"
+                                                    className="text-gray-400 hover:text-green-400 h-8 px-2 cursor-pointer transition-all duration-200 hover:scale-110"
                                                     title="Mark as read"
                                                 >
                                                     <Check className="w-4 h-4" />
@@ -240,7 +240,7 @@ const AlertsPanel = ({ alerts: initialAlerts = [], setAlerts: setParentAlerts })
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => deleteAlert(alert.id)}
-                                                className="text-gray-400 hover:text-red-400 h-8 px-2"
+                                                className="text-gray-400 hover:text-red-400 h-8 px-2 cursor-pointer transition-all duration-200 hover:scale-110"
                                                 title="Delete alert"
                                             >
                                                 <Trash2 className="w-4 h-4" />
