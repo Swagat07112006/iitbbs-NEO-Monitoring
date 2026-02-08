@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -36,7 +37,8 @@ const getDateRange = () => {
 };
 
 const DashboardLayout = () => {
-  const [activeView, setActiveView] = useState('overview');
+  const location = useLocation();
+  const [activeView, setActiveView] = useState(() => location.state?.view || 'overview');
   const [neoData, setNeoData] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [riskSummary, setRiskSummary] = useState(null);

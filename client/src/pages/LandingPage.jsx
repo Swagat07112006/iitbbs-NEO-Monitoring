@@ -17,7 +17,7 @@ const LandingPage = () => {
       </Suspense>
       {/* Meteors Effect */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <Meteors number={8} />
+        <Meteors number={15} />
       </div>
 
       {/* Content Layer */}
